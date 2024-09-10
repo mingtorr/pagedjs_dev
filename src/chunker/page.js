@@ -42,7 +42,9 @@ class Page {
 
 		let size = area.getBoundingClientRect();
 
-		area.style.columnWidth = Math.round(size.width) + "px";
+		// Overflowed items are not visible by this code.
+		// If this code is not removed, the bottom of the getBoundingClientRect on the overflow node does not come out properly.
+		//area.style.columnWidth = Math.round(size.width) + "px";
 		area.style.columnGap = "calc(var(--pagedjs-margin-right) + var(--pagedjs-margin-left) + var(--pagedjs-bleed-right) + var(--pagedjs-bleed-left) + var(--pagedjs-column-gap-offset))";
 		// area.style.overflow = "scroll";
 
