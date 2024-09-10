@@ -843,7 +843,7 @@ class Layout {
 
 		if (isElement(node)) {
 			let result = this.getAncestorPaddingBorderAndMarginSums(node);
-			parentBottomPaddingBorder = result['border-bottom-width'];
+			parentBottomPaddingBorder = result['border-bottom-width'] + result['padding-bottom'];
 			parentBottomMargin = result['margin-bottom'];
 		}
 
@@ -859,7 +859,9 @@ class Layout {
 				let styles = window.getComputedStyle(child);
 				let skipThis = false;
 
-				bottomMargin = parseInt(styles["margin-bottom"]);
+				// parseInt equals floor
+				//bottomMargin = parseInt(styles["margin-bottom"]);
+				bottomMargin = Math.ceil(parseFloat(styles["margin-bottom"]));
 
 				if (child.dataset.rangeStartOverflow !== undefined) {
 					skipRange = skipThis = true;
@@ -879,7 +881,7 @@ class Layout {
 
 			}
 			else {
-				bottomMargin = parentBottomMargin;
+				bottomMargin = 0;
 			}
 
 			if (skipRange) {
@@ -889,8 +891,11 @@ class Layout {
 			let left = Math.ceil(pos.left);
 			let right = Math.floor(pos.right);
 			let top = Math.ceil(pos.top);
-			let bottom = Math.floor(pos.bottom + bottomMargin +
-				(node.lastChild == child ? parentBottomPaddingBorder : 0));
+
+			// A break can occur anywhere inside the table, so why add the padding/border only for the last element?
+			// Need to account for the possibility of a break at every element during the calculation.
+			//let bottom = Math.floor(pos.bottom + bottomMargin + (node.lastChild == child ? parentBottomPaddingBorder : 0));
+			let bottom = Math.floor(pos.bottom + bottomMargin + parentBottomPaddingBorder + parentBottomMargin);
 
 			if (!(pos.height + bottomMargin)) {
 				continue;
@@ -1004,7 +1009,7 @@ class Layout {
 						intrinsicBottom = childBounds.bottom;
 
 						let result = this.getAncestorPaddingBorderAndMarginSums(node.parentElement);
-						parentBottomPaddingBorder = result['border-bottom-width'];
+						parentBottomPaddingBorder = result['border-bottom-width'] + result['padding-bottom'];
 						parentBottomMargin = result['margin-bottom'];
 					}
 					intrinsicBottom += parentBottomPaddingBorder + parentBottomMargin;
