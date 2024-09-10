@@ -170,13 +170,14 @@ function copyWidth(originalElement, destElement) {
 }
 
 export function rebuildTableRow(node, alreadyRendered, existingChildren) {
-	let currentCol = 0, maxCols = 0, nextInitialColumn = 0;
+	let currentCol = 0, maxCols = 0, nextInitialColumn = 0, sum = 0, totalRows = 0;
 	let rebuilt = node.cloneNode(false);
 	const initialColumns = Array.from(node.children);
 
-	// Find the max number of columns.
+	// Find the total number of rows before the current row and the maximum number of columns
 	let earlierRow = node.parentElement.children[0];
 	while (earlierRow && earlierRow !== node) {
+		totalRows++;
 		if (earlierRow.children.length > maxCols) {
 			maxCols = earlierRow.children.length;
 		}
@@ -188,21 +189,29 @@ export function rebuildTableRow(node, alreadyRendered, existingChildren) {
 		maxCols = existing?.children.length || 0;
 	}
 
-	// The next td to use in each tr.
-	// Doesn't take account of rowspans above that might make extra columns.
-	let rowOffsets = Array(maxCols).fill(0);
+	// Initialize an array to track the number of merged cells (due to rowspan) in each row.
+	// This helps keep track of the correct column index when checking for cells affected by rowspan
+	let rowspanTracker = Array(totalRows + 1).fill(0);
 
 	// Duplicate rowspans and our initial columns.
 	while (currentCol < maxCols) {
+		let rowIndex = 0;
 		let earlierRow = node.parentElement.children[0];
-		let earlierRowIndex = 0;
 		let rowspan, column;
 		// Find the nth column we'll duplicate (rowspan) or use.
 		while (earlierRow && earlierRow !== node) {
-			if (rowspan == undefined) {
-				column = earlierRow.children[currentCol - rowOffsets[nextInitialColumn]];
+			rowIndex++;
+			if (rowspan === undefined) {
+				sum = currentCol - rowspanTracker[rowIndex];
+				column = earlierRow.children[sum < 0 ? 0 : sum];
 				if (column && column.rowSpan !== undefined && column.rowSpan > 1) {
 					rowspan = column.rowSpan;
+
+					for (let i = 1; i < rowspan; i++) {
+						if ((rowIndex + i) <= totalRows) {
+							rowspanTracker[rowIndex + i] += 1;
+						}
+					}
 				}
 			}
 			// If rowspan === 0 the entire remainder of the table row is used.
@@ -210,13 +219,11 @@ export function rebuildTableRow(node, alreadyRendered, existingChildren) {
 				// Tracking how many rows in the overflow.
 				if (rowspan < 2) {
 					rowspan = undefined;
-				}
-				else {
+				} else {
 					rowspan--;
 				}
 			}
 			earlierRow = earlierRow.nextElementSibling;
-			earlierRowIndex++;
 		}
 
 		let destColumn;
